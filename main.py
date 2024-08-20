@@ -60,8 +60,8 @@ def create_argparser():
         "--lora_weight", type=float, default=0.9, help="Lora model strength (from 0 to 1.0)"
     )
     parser.add_argument(
-        "--control_type", type=str, default="canny",
-        choices=("canny", "openpose", "depth", "hed", "hough", "tile"),
+        "--control_type", type=str, default="edit",
+        choices=("canny", "openpose", "depth", "hed", "hough", "tile", "edit"),
         help="Name of controlnet condition, example: canny"
     )
     parser.add_argument(

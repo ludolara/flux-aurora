@@ -1,14 +1,13 @@
 model_name: "flux-dev"
 data_config:
   train_batch_size: 4
-  num_workers: 4
+  num_workers: 6
   img_size: 512
-  img_dir: images/
   dataset_name: McGill-NLP/AURORA
   split: train
 report_to: wandb
-train_batch_size: 3
-output_dir: saves_canny/
+train_batch_size: 4
+output_dir: output_aurora/
 max_train_steps: 100000
 learning_rate: 2e-5
 lr_scheduler: constant
@@ -22,6 +21,6 @@ logging_dir: logs
 mixed_precision: "bf16"
 checkpointing_steps: 2500
 checkpoints_total_limit: 10
-tracker_project_name: canny_training
+tracker_project_name: aurora_training
 resume_from_checkpoint: latest
 gradient_accumulation_steps: 2

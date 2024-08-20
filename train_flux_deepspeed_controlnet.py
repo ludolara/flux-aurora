@@ -37,15 +37,20 @@ from einops import rearrange
 from src.flux.sampling import denoise, get_noise, get_schedule, prepare, unpack
 from src.flux.util import (configs, load_ae, load_clip,
                        load_flow_model2, load_controlnet, load_t5)
-from image_datasets.canny_dataset import loader
+from image_datasets.aurora_dataset import loader
 if is_wandb_available():
     import wandb
 logger = get_logger(__name__, log_level="INFO")
 
+from huggingface_hub import login
+login(token="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")
+
 def get_models(name: str, device, offload: bool, is_schnell: bool):
     t5 = load_t5(device, max_length=256 if is_schnell else 512)
     clip = load_clip(device)
+    # Init model
     model = load_flow_model2(name, device="cpu")
+    #Init AE
     vae = load_ae(name, device="cpu" if offload else device)
     return model, vae, t5, clip
 
@@ -219,7 +224,7 @@ def main():
                 t = torch.sigmoid(torch.randn((bs,), device=accelerator.device))
 
                 x_0 = torch.randn_like(x_1).to(accelerator.device)
-                print(t.shape, x_1.shape, x_0.shape)
+                # print(t.shape, x_1.shape, x_0.shape)
                 x_t = (1 - t.unsqueeze(1).unsqueeze(2).repeat(1, x_1.shape[1], x_1.shape[2])) * x_1 + t.unsqueeze(1).unsqueeze(2).repeat(1, x_1.shape[1], x_1.shape[2]) * x_0
                 bsz = x_1.shape[0]
                 guidance_vec = torch.full((x_t.shape[0],), 4, device=x_t.device, dtype=x_t.dtype)
@@ -310,7 +315,6 @@ def main():
 
     accelerator.wait_for_everyone()
     accelerator.end_training()
-
 
 if __name__ == "__main__":
     main()

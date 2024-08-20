@@ -78,6 +78,8 @@ class Annotator:
             processor = MLSDdetector()
         elif name == "tile":
             processor = TileDetector()
+        elif name == "edit":
+            processor = None
         self.name = name
         self.processor = processor
 
@@ -85,15 +87,19 @@ class Annotator:
         image = c_crop(image)
         image = image.resize((width, height))
         image = np.array(image)
-        if self.name == "canny":
-            result = self.processor(image, low_threshold=100, high_threshold=200)
-        elif self.name == "hough":
-            result = self.processor(image, thr_v=0.05, thr_d=5)
-        elif self.name == "depth":
-            result = self.processor(image)
-            result, _ = result
+
+        if self.name != "edit":
+            if self.name == "canny":
+                result = self.processor(image, low_threshold=100, high_threshold=200)
+            elif self.name == "hough":
+                result = self.processor(image, thr_v=0.05, thr_d=5)
+            elif self.name == "depth":
+                result = self.processor(image)
+                result, _ = result
+            else:
+                result = self.processor(image)
         else:
-            result = self.processor(image)
+            result = image            
 
         if result.ndim != 3:
             result = result[:, :, None]
