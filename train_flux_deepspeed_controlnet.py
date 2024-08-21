@@ -14,7 +14,7 @@ import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
 import transformers
-from accelerate import Accelerator
+from accelerate import Accelerator, DistributedDataParallelKwargs
 from accelerate.logging import get_logger
 from accelerate.state import AcceleratorState
 from accelerate.utils import ProjectConfiguration, set_seed
@@ -40,7 +40,9 @@ from src.flux.util import (configs, load_ae, load_clip,
 from image_datasets.aurora_dataset import loader
 from dotenv import load_dotenv
 from huggingface_hub import login
-
+if is_wandb_available():
+    import wandb
+    wandb.login(key=os.getenv("WANDB_TOKEN"))
 load_dotenv()
 logger = get_logger(__name__, log_level="INFO")
 login(token=os.getenv("HF_TOKEN"))
@@ -66,18 +68,8 @@ def parse_args():
     args = parser.parse_args()
     return args.config
 
-def start_wandb_logger(project_name, config):
-    import wandb
-    wandb.login(key=os.getenv("WANDB_TOKEN"))
-    wandb.init(
-        project=project_name,
-        config=OmegaConf.to_container(config, resolve=True)
-    )
-
 def main():
     args = OmegaConf.load(parse_args())
-    if args.report_to == "wandb" and is_wandb_available():
-        start_wandb_logger(args.wandb_project, args)
     is_schnell = args.model_name == "flux-schnell"
     logging_dir = os.path.join(args.output_dir, args.logging_dir)
 
@@ -88,6 +80,7 @@ def main():
         mixed_precision=args.mixed_precision,
         log_with=args.report_to,
         project_config=accelerator_project_config,
+        kwargs_handlers=[DistributedDataParallelKwargs(find_unused_parameters=True)]
     )
 
     # Make one log on every process with the configuration for debugging.
@@ -171,8 +164,8 @@ def main():
         args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
     args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
 
-    # if accelerator.is_main_process:
-    #     accelerator.init_trackers(args.tracker_project_name, {"test": None})
+    if accelerator.is_main_process:
+        accelerator.init_trackers(args.tracker_project_name, OmegaConf.to_container(args, resolve=True))
 
     timesteps = list(torch.linspace(1, 0, 1000).numpy())
     total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps

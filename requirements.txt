@@ -10,7 +10,7 @@ diffusers
 sentencepiece
 opencv-python
 matplotlib
-onnxruntime-gpu
+onnxruntime
 torchvision
 timm
 python-dotenv
