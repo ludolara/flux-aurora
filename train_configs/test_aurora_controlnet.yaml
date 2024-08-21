@@ -3,7 +3,6 @@ data_config:
   train_batch_size: 8
   num_workers: 6
   img_size: 256
-  dataset_name: McGill-NLP/AURORA
   split: train
 report_to: wandb
 train_batch_size: 8
@@ -19,7 +18,7 @@ adam_epsilon: 1e-8
 max_grad_norm: 1.0
 logging_dir: logs
 mixed_precision: "bf16"
-checkpointing_steps: 100
+checkpointing_steps: 2500
 checkpoints_total_limit: 10
 tracker_project_name: flux-aurora
 resume_from_checkpoint: latest

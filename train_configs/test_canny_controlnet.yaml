@@ -4,7 +4,7 @@ data_config:
   num_workers: 4
   img_size: 512
   img_dir: images/
-  dataset_name: McGill-NLP/AURORA
+  dataset_name: canny
   split: train
 report_to: wandb
 train_batch_size: 3

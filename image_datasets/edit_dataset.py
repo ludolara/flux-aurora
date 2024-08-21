@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 
 def ensure_three_channels(image):
     if image.mode != 'RGB':
@@ -18,8 +18,39 @@ def c_crop(image):
     return image.crop((left, top, right, bottom))
 
 class HuggingFaceImageDataset(Dataset):
-    def __init__(self, dataset_name, split, img_size=512):
-        self.dataset = load_dataset(dataset_name, split=split, cache_dir='/home/mila/l/luis.lara/scratch/.cache')
+    def __init__(self, split, img_size=256, cache_dir='/home/mila/l/luis.lara/scratch/.cache'):
+        dataset_aurora = load_dataset(
+                "McGill-NLP/AURORA", 
+                split=split, 
+                cache_dir=cache_dir
+            ).select_columns([
+                'input', 
+                'instruction', 
+                'output'
+            ])
+        dataset_aurora_ss = load_dataset(
+                "ludolara/aurora_something-something", 
+                split=split, 
+                cache_dir=cache_dir
+            ).select_columns([
+                'input', 
+                'instruction', 
+                'output'
+            ])
+        dataset_ip2p = load_dataset(
+                'timbrooks/instructpix2pix-clip-filtered', 
+                split=split, 
+                cache_dir=cache_dir
+            ).select_columns([
+                'original_image', 
+                'edited_image', 
+                'edit_prompt'
+            ]).rename_columns({
+                'original_image': 'input',
+                'edit_prompt': 'instruction',
+                'edited_image': 'output'
+            })
+        self.dataset = concatenate_datasets([dataset_aurora, dataset_aurora_ss, dataset_ip2p])
         self.img_size = img_size
 
     def __len__(self):
@@ -58,3 +89,12 @@ def loader(train_batch_size, num_workers, **args):
         shuffle=True,
         collate_fn=custom_collate_fn
     )
+
+# train_loader = loader(
+#     train_batch_size=1,
+#     num_workers=6,
+#     split="train",
+#     img_size=256
+# )
+# print(train_loader.dataset)
+# print(len(train_loader.dataset))
