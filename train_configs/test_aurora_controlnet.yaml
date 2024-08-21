@@ -1,4 +1,4 @@
-model_name: "flux-dev"
+model_name: flux-dev
 data_config:
   train_batch_size: 4
   num_workers: 6
@@ -6,6 +6,7 @@ data_config:
   dataset_name: McGill-NLP/AURORA
   split: train
 report_to: wandb
+wandb_project: flux-aurora
 train_batch_size: 4
 output_dir: output_aurora/
 max_train_steps: 100000
@@ -21,6 +22,5 @@ logging_dir: logs
 mixed_precision: "bf16"
 checkpointing_steps: 2500
 checkpoints_total_limit: 10
-tracker_project_name: aurora_training
 resume_from_checkpoint: latest
 gradient_accumulation_steps: 2

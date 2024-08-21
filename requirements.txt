@@ -13,3 +13,5 @@ matplotlib
 onnxruntime-gpu
 torchvision
 timm
+python-dotenv
+wandb

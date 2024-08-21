@@ -38,12 +38,12 @@ from src.flux.sampling import denoise, get_noise, get_schedule, prepare, unpack
 from src.flux.util import (configs, load_ae, load_clip,
                        load_flow_model2, load_controlnet, load_t5)
 from image_datasets.aurora_dataset import loader
-if is_wandb_available():
-    import wandb
-logger = get_logger(__name__, log_level="INFO")
-
+from dotenv import load_dotenv
 from huggingface_hub import login
-login(token="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")
+
+load_dotenv()
+logger = get_logger(__name__, log_level="INFO")
+login(token=os.getenv("HF_TOKEN"))
 
 def get_models(name: str, device, offload: bool, is_schnell: bool):
     t5 = load_t5(device, max_length=256 if is_schnell else 512)
@@ -64,12 +64,20 @@ def parse_args():
         help="path to config",
     )
     args = parser.parse_args()
-
-
     return args.config
-def main():
 
+def start_wandb_logger(project_name, config):
+    import wandb
+    wandb.login(key=os.getenv("WANDB_TOKEN"))
+    wandb.init(
+        project=project_name,
+        config=OmegaConf.to_container(config, resolve=True)
+    )
+
+def main():
     args = OmegaConf.load(parse_args())
+    if args.report_to == "wandb" and is_wandb_available():
+        start_wandb_logger(args.wandb_project, args)
     is_schnell = args.model_name == "flux-schnell"
     logging_dir = os.path.join(args.output_dir, args.logging_dir)
 
@@ -163,8 +171,8 @@ def main():
         args.max_train_steps = args.num_train_epochs * num_update_steps_per_epoch
     args.num_train_epochs = math.ceil(args.max_train_steps / num_update_steps_per_epoch)
 
-    if accelerator.is_main_process:
-        accelerator.init_trackers(args.tracker_project_name, {"test": None})
+    # if accelerator.is_main_process:
+    #     accelerator.init_trackers(args.tracker_project_name, {"test": None})
 
     timesteps = list(torch.linspace(1, 0, 1000).numpy())
     total_batch_size = args.train_batch_size * accelerator.num_processes * args.gradient_accumulation_steps

@@ -1,0 +1,11 @@
+The token has not been saved to the git credentials helper. Pass `add_to_git_credential=True` in this function directly or `--add-to-git-credential` if using via `huggingface-cli` if you want to set the git credential as well.
+Token is valid (permission: read).
+Your token has been saved to /home/mila/l/luis.lara/.cache/huggingface/token
+Login successful
+DEVICE cuda
+Init model
+Loading checkpoint
+Init AE
+743.80728 parameters
+Checkpoint 'latest' does not exist. Starting a new training run.
+[2024-08-20 17:22:39,983] [INFO] [real_accelerator.py:203:get_accelerator] Setting ds_accelerator to cuda (auto detect)
