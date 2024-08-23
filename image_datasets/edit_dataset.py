@@ -1,11 +1,14 @@
+import os
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset, concatenate_datasets
+from dotenv import load_dotenv
+load_dotenv()
 
 def ensure_three_channels(image):
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
+    if image.mode != "RGB":
+        image = image.convert("RGB")
     return image
 
 def c_crop(image):
@@ -18,7 +21,7 @@ def c_crop(image):
     return image.crop((left, top, right, bottom))
 
 class HuggingFaceImageDataset(Dataset):
-    def __init__(self, split, img_size=256, cache_dir='/home/mila/l/luis.lara/scratch/.cache'):
+    def __init__(self, split, img_size=256, cache_dir=os.getenv("CACHE_DIR")):
         dataset_aurora = load_dataset(
                 "McGill-NLP/AURORA", 
                 split=split, 
@@ -49,9 +52,42 @@ class HuggingFaceImageDataset(Dataset):
                 'original_image': 'input',
                 'edit_prompt': 'instruction',
                 'edited_image': 'output'
+            })  
+        dataset_hq = load_dataset(
+                "UCSC-VLAA/HQ-Edit", 
+                split=split, 
+                cache_dir=cache_dir
+            ).select_columns([
+                'input_image', 
+                'edit',
+                'output_image'
+            ]).rename_columns({
+                'input_image': 'input',
+                'edit': 'instruction',
+                'output_image': 'output'
             })
-        self.dataset = concatenate_datasets([dataset_aurora, dataset_aurora_ss, dataset_ip2p])
+        dataset_hq_inverse = load_dataset(
+                "UCSC-VLAA/HQ-Edit", 
+                split=split, 
+                cache_dir=cache_dir
+            ).select_columns([
+                'output_image', 
+                'inverse_edit',
+                'input_image'
+            ]).rename_columns({
+                'output_image': 'input',
+                'inverse_edit': 'instruction',
+                'input_image': 'output'
+            })
+        self.dataset = concatenate_datasets([
+            dataset_aurora, 
+            dataset_aurora_ss, 
+            dataset_ip2p,
+            dataset_hq,
+            dataset_hq_inverse
+        ])
         self.img_size = img_size
+        # print(self.dataset)
 
     def __len__(self):
         return len(self.dataset)
@@ -89,12 +125,3 @@ def loader(train_batch_size, num_workers, **args):
         shuffle=True,
         collate_fn=custom_collate_fn
     )
-
-# train_loader = loader(
-#     train_batch_size=1,
-#     num_workers=6,
-#     split="train",
-#     img_size=256
-# )
-# print(train_loader.dataset)
-# print(len(train_loader.dataset))
