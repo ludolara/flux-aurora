@@ -52,39 +52,26 @@ class HuggingFaceImageDataset(Dataset):
                 'original_image': 'input',
                 'edit_prompt': 'instruction',
                 'edited_image': 'output'
-            })  
-        dataset_hq = load_dataset(
-                "UCSC-VLAA/HQ-Edit", 
-                split=split, 
-                cache_dir=cache_dir
-            ).select_columns([
-                'input_image', 
-                'edit',
-                'output_image'
-            ]).rename_columns({
-                'input_image': 'input',
-                'edit': 'instruction',
-                'output_image': 'output'
             })
-        dataset_hq_inverse = load_dataset(
-                "UCSC-VLAA/HQ-Edit", 
-                split=split, 
-                cache_dir=cache_dir
-            ).select_columns([
-                'output_image', 
-                'inverse_edit',
-                'input_image'
-            ]).rename_columns({
-                'output_image': 'input',
-                'inverse_edit': 'instruction',
-                'input_image': 'output'
-            })
+        # TODO: It has some good examples but needs preprocesing to select them
+        # dataset_hq = load_dataset(
+        #         "UCSC-VLAA/HQ-Edit", 
+        #         split=split, 
+        #         cache_dir=cache_dir
+        #     ).select_columns([
+        #         'input_image', 
+        #         'edit',
+        #         'output_image'
+        #     ]).rename_columns({
+        #         'input_image': 'input',
+        #         'edit': 'instruction',
+        #         'output_image': 'output'
+        #     })
         self.dataset = concatenate_datasets([
             dataset_aurora, 
             dataset_aurora_ss, 
-            dataset_ip2p,
-            dataset_hq,
-            dataset_hq_inverse
+            dataset_ip2p
+            # dataset_hq
         ])
         self.img_size = img_size
         # print(self.dataset)

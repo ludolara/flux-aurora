@@ -38,12 +38,12 @@ from src.flux.sampling import denoise, get_noise, get_schedule, prepare, unpack
 from src.flux.util import (configs, load_ae, load_clip,
                        load_flow_model2, load_controlnet, load_t5)
 from image_datasets.edit_dataset import loader
-from dotenv import load_dotenv
 from huggingface_hub import login
+from dotenv import load_dotenv
+load_dotenv()
 if is_wandb_available():
     import wandb
     wandb.login(key=os.getenv("WANDB_TOKEN"))
-load_dotenv()
 logger = get_logger(__name__, log_level="INFO")
 login(token=os.getenv("HF_TOKEN"))
 

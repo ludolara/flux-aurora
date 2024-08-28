@@ -7,16 +7,20 @@ import os
 import numpy as np
 import torch
 from PIL import Image
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, default_collate
 from tqdm import tqdm
 from collections import defaultdict
 import json
 import os
 import clip
 from diffusers import DiffusionPipeline
-# from edit_dataset import EditITMDataset
+from edit_dataset import EditITMDataset
 from dotenv import load_dotenv
 load_dotenv()
+
+def custom_collate_fn(batch):
+    batch = [item for item in batch if item is not None]
+    return default_collate(batch)
 
 def calculate_clip_similarity(generated_images, original_image, clip_model, preprocess, device):
     original_image_processed = preprocess(original_image).unsqueeze(0).to(device)
@@ -53,7 +57,7 @@ def main():
     parser.add_argument("--config", default="configs/generate.yaml", type=str)
     parser.add_argument("--ckpt", default="aurora-mixratio-15-15-1-1-42k-steps.ckpt", type=str)
     parser.add_argument("--vae-ckpt", default=None, type=str)
-    parser.add_argument("--task", default='flickr_edit', type=str)
+    parser.add_argument("--task", default='whatsup', type=str)
     parser.add_argument("--batchsize", default=1, type=int)
     parser.add_argument("--samples", default=4, type=int)
     parser.add_argument("--size", default=512, type=int)
@@ -65,7 +69,7 @@ def main():
     parser.add_argument("--log_imgs", action="store_true")
     parser.add_argument("--conditional_only", action="store_true")
     parser.add_argument("--metric", default="latent", type=str)
-    parser.add_argument("--split", default='test', type=str)
+    parser.add_argument("--split", default='valid', type=str)
     parser.add_argument("--skip", default=1, type=int)
     args = parser.parse_args()
     device = torch.device(f"cuda:{args.device}" if torch.cuda.is_available() else "cpu")
@@ -74,8 +78,10 @@ def main():
 
     clip_model, preprocess = clip.load("ViT-B/32", device=device)
 
-    # dataset = EditITMDataset(split=args.split, task=args.task, min_resize_res=args.size, max_resize_res=args.size, crop_res=args.size)
-    # dataloader = DataLoader(dataset, batch_size=args.batchsize, num_workers=1, worker_init_fn=None, shuffle=False, persistent_workers=True)
+    dataset = EditITMDataset(split=args.split, task=args.task, min_resize_res=args.size, max_resize_res=args.size, crop_res=args.size)
+    dataloader = DataLoader(dataset, batch_size=args.batchsize, num_workers=1, worker_init_fn=None, shuffle=False, persistent_workers=True, collate_fn=custom_collate_fn)
+
+    print(len(dataset))
 
     # if os.path.exists(f'itm_evaluation/{args.split}/{args.task}/{args.ckpt.replace("/", "_")}_results.json'):
     #     with open(f'itm_evaluation/{args.split}/{args.task}/{args.ckpt.replace("/", "_")}_results.json', 'r') as f:
@@ -88,40 +94,41 @@ def main():
     #     if len(batch['input'][0].shape) < 3:
     #         continue
     #     for j, prompt in enumerate(batch['texts']):
+    #         print(prompt)
     #         img_id = batch['path'][0] + f'_{i}'
 
-    #         with torch.no_grad():
-    #             generated_images = []
-    #             for _ in range(args.samples):
-    #                 generated_image = pipeline(prompt[0], guidance_scale=args.cfg_text).images[0]
-    #                 generated_images.append(generated_image)
+            # with torch.no_grad():
+            #     generated_images = []
+            #     for _ in range(args.samples):
+            #         generated_image = pipeline(prompt[0], image=input_image, guidance_scale=args.cfg_text).images[0]
+            #         generated_images.append(generated_image)
 
-    #         ######## LOG IMAGES ########
-    #             input_image_pil = ((batch['input'][0] + 1) * 0.5).clamp(0, 1)
-    #             input_image_pil = input_image_pil.permute(1, 2, 0)  # Change from CxHxW to HxWxC for PIL
-    #             input_image_pil = (input_image_pil * 255).type(torch.uint8).cpu().numpy()
+            # ######## LOG IMAGES ########
+            #     input_image_pil = ((batch['input'][0] + 1) * 0.5).clamp(0, 1)
+            #     input_image_pil = input_image_pil.permute(1, 2, 0)  # Change from CxHxW to HxWxC for PIL
+            #     input_image_pil = (input_image_pil * 255).type(torch.uint8).cpu().numpy()
 
-    #             for k, edited_image in enumerate(generated_images):
-    #                 edited_image_np = np.array(edited_image)
-    #                 both = np.concatenate((input_image_pil, edited_image_np), axis=1)
-    #                 both = Image.fromarray(both)
-    #                 out_base = f'itm_evaluation/{args.split}/{args.task}/{args.ckpt.replace("/", "_")}'
-    #                 if not os.path.exists(out_base):
-    #                     os.makedirs(out_base)
-    #                 prompt_str = prompt[0].replace(' ', '_')[0:100]
-    #                 both.save(f'{out_base}/{i}_{"correct" if j == 0 else "incorrect"}_sample{k}_{prompt_str}.png')
+            #     for k, edited_image in enumerate(generated_images):
+            #         edited_image_np = np.array(edited_image)
+            #         both = np.concatenate((input_image_pil, edited_image_np), axis=1)
+            #         both = Image.fromarray(both)
+            #         out_base = f'itm_evaluation/{args.split}/{args.task}/{args.ckpt.replace("/", "_")}'
+            #         if not os.path.exists(out_base):
+            #             os.makedirs(out_base)
+            #         prompt_str = prompt[0].replace(' ', '_')[0:100]
+            #         both.save(f'{out_base}/{i}_{"correct" if j == 0 else "incorrect"}_sample{k}_{prompt_str}.png')
                 
-    #         ######## CLIP ########
-    #             input_image_pil = Image.fromarray(input_image_pil)
-    #             dists_clip = calculate_clip_similarity(generated_images, input_image_pil, clip_model, preprocess, device)
+            # ######## CLIP ########
+            #     input_image_pil = Image.fromarray(input_image_pil)
+            #     dists_clip = calculate_clip_similarity(generated_images, input_image_pil, clip_model, preprocess, device)
 
-    #         ######## SAVE RESULTS ########
-    #             results[img_id]['pos' if j == 0 else 'neg'] = {
-    #                 "prompt": prompt[0],
-    #                 "clip": dists_clip,
-    #             }
-    #             with open(f'itm_evaluation/{args.split}/{args.task}/{args.ckpt.replace("/", "_")}_results.json', 'w') as f:
-    #                 json.dump(results, f, indent=2)
+            # ######## SAVE RESULTS ########
+            #     results[img_id]['pos' if j == 0 else 'neg'] = {
+            #         "prompt": prompt[0],
+            #         "clip": dists_clip,
+            #     }
+            #     with open(f'itm_evaluation/{args.split}/{args.task}/{args.ckpt.replace("/", "_")}_results.json', 'w') as f:
+            #         json.dump(results, f, indent=2)
 
 if __name__ == "__main__":
     main()
